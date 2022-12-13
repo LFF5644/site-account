@@ -1,0 +1,57 @@
+<?
+const fs = require('fs');
+
+const userName=input.usrName;
+const userPassword=input.usrPassword;
+const mail=input.mail===undefined?"[NULL]":input.mail;
+const nummber=input.nummber===undefined?"[NULL]":input.nummber;
+const rang=input.rang===undefined?"[NULL]":input.rang;
+let result="undefined".toUpperCase()
+
+const {GenToken}=service_require("server/account/account");
+
+if(userName===undefined||userPassword===undefined){
+	result="undefined".toUpperCase();
+}
+else{
+	let accounts=fs.readdirSync('data/accounts');
+	let exists=false;
+
+	let acc;
+	for(acc of accounts){
+		let fileText=globals.functions.ReadFile("data/accounts/"+acc+"/acc.ini");
+		if(globals.functions.GetLine(fileText,"username")[1].toLowerCase()===userName.toLowerCase()){
+			exists=true;
+		}
+	}
+	if(exists===false){
+		let token=GenToken();
+		let fileData_accINI=`#Account Created at ${Date.now()}
+username=${userName}
+password=${globals.functions.encodeBase64(userPassword).split("=").join("[IQUIL]").split("\n").join("[BR]")}
+email=${mail}
+tell=${nummber}`;
+		let fileData_serverOnlyINI=`#Account Created at ${Date.now()}\ntoken=${token}`;
+		let fileData_constINI=`#Account Created at ${Date.now()}\nrang=user\ncreated=${Date.now()}`;
+		let fileData_systemLOG=`#Account Created at ${Date.now()}\n`
+
+		console.log(`[CLIENT]['${input.ip}'][register.api]: Create Account '${userName}'`);
+		let userName_replace=userName.split(" ").join("_").split("\\").join("[?]").split("/").join("[?]");
+		globals.functions.CreateDir("data/accounts/"+userName_replace);
+		globals.functions.WriteFile("data/accounts/"+userName_replace+"/acc.ini",fileData_accINI)
+		globals.functions.WriteFile("data/accounts/"+userName_replace+"/serverOnly.ini",fileData_serverOnlyINI)
+		globals.functions.WriteFile("data/accounts/"+userName_replace+"/const.ini",fileData_constINI)
+		globals.functions.WriteFile("data/accounts/"+userName_replace+"/system.log",fileData_systemLOG)
+		let result_JSON={};
+		result_JSON['acc.ini']=fileData_accINI;
+		result_JSON['serverOnly.ini']=fileData_serverOnlyINI;
+		result_JSON['const.ini']=fileData_constINI;
+		result_JSON['system.log']=fileData_systemLOG;
+		result=JSON.stringify(result_JSON);
+	}
+
+	else if(exists===true){
+		result="Account exists".toUpperCase()
+	}
+}
+?><?=String(result)?>

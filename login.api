@@ -1,0 +1,124 @@
+<?
+const service=service_require("server/account/account")
+
+const want=String(input.want);
+const ud=undefined ;
+let result="WRONG WANT!";
+
+if(want.toLowerCase()=="login"){
+	const userName=input.usrName;
+	const userPassword=input.usrPassword;
+	const userToken=input.usrToken;
+
+	if(userName===undefined){
+		result="undefined".toUpperCase();
+	}else{
+		let tp,ty;
+		if(userToken!==undefined){tp=userToken;ty="token"}
+		if(userPassword!==undefined){tp=userPassword;ty="password"}
+		let result_=service.GetAccount(userName,tp,ty)
+		if(result_[0]==="error"){result=result_[1]}else if(result_[0]==="data"){
+			let fileData_accINI=globals.functions.ReadFile(result_[1]+"/acc.ini")
+			let fileData_constINI=globals.functions.ReadFile(result_[1]+"/const.ini")
+			let fileData_systemLOG=globals.functions.ReadFile(result_[1]+"/system.log")
+			let fileData_serverOnlyINI=globals.functions.ReadFile(result_[1]+"/serverOnly.ini")
+
+			let result_JSON={};
+			result_JSON['acc.ini']=fileData_accINI;
+			result_JSON['serverOnly.ini']=fileData_serverOnlyINI;
+			result_JSON['const.ini']=fileData_constINI;
+			result_JSON['system.log']=fileData_systemLOG;
+			result=JSON.stringify(result_JSON,null,4);
+		}
+	}
+}
+else if(want.toLowerCase()=="updatetoken"||want.toLowerCase()=="tokenupdate"){
+	const userName=input.usrName;
+	const userPassword=input.usrPassword;
+	const userToken=input.usrToken;
+	if(userName===undefined){result="undefined".toUpperCase()}else{
+		let tp=null;
+		let ty=null;
+		if(userToken!==undefined){tp=userToken;ty="token"}
+		if(userPassword!==undefined){tp=userPassword;ty="password"}
+		let result_=service.GetAccount(userName,tp,ty)
+		if(result_[0]==="error"){result=result_[1]}else if(result_[0]==="data"){
+			let accPath=result_[1];
+			let fileData_accINI=globals.functions.ReadFile(accPath+"/acc.ini")
+			let fileData_constINI=globals.functions.ReadFile(accPath+"/const.ini")
+			let fileData_serverOnlyINI=globals.functions.ReadFile(accPath+"/serverOnly.ini")
+			let fileData_systemLOG=globals.functions.ReadFile(accPath+"/system.log")
+			
+			fileData_serverOnlyINI=globals.functions.ConfigLine(fileData_serverOnlyINI,["token",String(service.GenToken())])
+			globals.functions.WriteFile(accPath+"/serverOnly.ini",fileData_serverOnlyINI)
+
+			let result_JSON={};
+			result_JSON['acc.ini']=fileData_accINI;
+			result_JSON['serverOnly.ini']=fileData_serverOnlyINI;
+			result_JSON['const.ini']=fileData_constINI;
+			result_JSON['system.log']=fileData_systemLOG;
+			result=JSON.stringify(result_JSON,null,4);
+		}
+	}
+}
+else if(want.toLowerCase()=="getvar"){
+	let fun=()=>{
+		const userName=input.usrName;
+		const userToken=input.usrToken;
+		let result="---- INTERNER-FEHLER ----"
+		if(userName===undefined||userToken===undefined){result="NO TOKEN OR USERNAME";return(result)}
+		let acc=service.GetAccount(userName,userToken,"token");
+		if(acc[0]=="error"){result="WRONG ACC DATA";return(result)}
+		acc=acc[1];
+		let vars="";
+		
+		vars=globals.functions.ReadFile(acc+"/vars.save");
+		if(!vars){globals.functions.WriteFile(acc+"/vars.save","");vars=""}
+		const variable=input.var;
+		if(variable===undefined){result="VAR undefined".toUpperCase();return(result)}
+		result=globals.functions.GetLine(vars,variable);
+		if(typeof(result)=="string"){result="VAR NOT FOUND";return(result)}
+		result=result[1];
+		result=globals.functions.REPLACEALL(result,[["${BR}$","\n"],["${IQUIL}$","="]])
+		return(result)
+	}
+	result=fun();
+}
+else if(want.toLowerCase()=="setvar"){
+	const fun=()=>{
+		const userName=input.usrName;
+		const userToken=input.usrToken;
+		const cmd=input.cmd;
+
+		let varValue=input.value;
+		let variable=input.var;
+		let result=ud;
+
+		if(userName==ud||userToken==ud||variable==ud||varValue==ud){return("NO TOKEN OR USERNAME OR VAR OR VARVALUE")}
+
+		let acc=service.GetAccount(userName,userToken,"token");
+		if(acc[0]=="error"){return("WRONG ACC DATA")}
+		acc=acc[1]
+		let vars="";
+		vars=globals.functions.ReadFile(acc+"/vars.save");
+		if(!vars){globals.functions.WriteFile(acc+"/vars.save","");vars=""}
+		let res=globals.functions.GetLine(vars,variable);
+
+		varValue=globals.functions.REPLACEALL(varValue,[["\n","${BR}$"],["=","${IQUIL}$"]])
+		if(typeof(res)=="string"){
+			if(vars.substr(vars.length-1)!="\n"){vars+="\n"}
+			vars+=variable+"="+varValue
+			globals.functions.WriteFile(acc+"/vars.save",vars)
+		}else{
+			vars=globals.functions.ConfigLine(vars,[variable,varValue])
+			globals.functions.WriteFile(acc+"/vars.save",vars)
+		}
+		return("OK|"+variable+"="+varValue)
+
+
+
+	}
+	result=fun();
+}
+
+?><?=String(result)?>

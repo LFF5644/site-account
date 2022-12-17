@@ -1,3 +1,4 @@
+// CREATED: 13.12.2022 UM 15∶15;
 // IMPORT //
 const {
 	ReadFile,
@@ -8,7 +9,7 @@ const {
 	decodeBase64,
 	encodeBase64,
 	xxhash,
-	jsonStringify
+	jsonStringify,
 }=globals.functions;
 
 //const {execSync}=require("child_process");
@@ -53,7 +54,7 @@ this.start=()=>{// if service start execute this;
 				catch(e){thisVars=false}
 			}
 			if(!thisVars){
-				WriteFile(accountFolder+"/vars.json","[]");
+				WriteFile(accountFolder+"/vars.json","{}");
 				thisVars={};
 			}
 
@@ -164,10 +165,14 @@ this.save=(must=false)=>{
 	let accountId="";
 	for(accountId of this.accountIndex){
 		const account=this.accounts[accountId];
+		const vars=account.vars;
+		delete account.vars;
 		CreateDir("data/accounts/"+accountId);
 		WriteFile("data/accounts/"+accountId+"/account.json",jsonStringify(account));
+		WriteFile("data/accounts/"+accountId+"/vars.json",jsonStringify(vars));
 	}
 	this.saveRequired=false;
+	return true;
 }
 this.stop=()=>{
 	this.save(true);

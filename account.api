@@ -1,3 +1,16 @@
 <?
+delete input.body;
 const service=service_require("server/account/account.new");
-?><?=JSON.stringify(service.accounts,null,4)?>
+const {jsonStringify}=globals.functions;
+const want=String(input.want).toLowerCase();
+let result="no result";
+
+if(want=="login"){
+	result=service.login(input);
+}
+else if(want=="createaccount"){
+	result=service.createAccount(input);
+}
+
+?><?=typeof(result)!="object"?result:jsonStringify(result)?>
+<?=jsonStringify(input)?>

@@ -13,4 +13,6 @@ else if(want=="createaccount"){
 }
 
 ?><?=typeof(result)!="object"?result:jsonStringify(result)?>
+
+
 <?=jsonStringify(input)?>

@@ -70,7 +70,7 @@ this.start=()=>{// if service start execute this;
 				//execSync("rm -rf "+accountFolder);
 				continue;
 			}
-
+			thisAccount.log=[];
 			this.accounts[tofsStr(thisAccount.username)]=thisAccount;
 		}
 		this.reloadAccountIndex();
@@ -84,7 +84,7 @@ this.reloadAccountIndex=()=>{
 	this.accountIndex=Object.keys(this.accounts);
 	return true;
 }
-this.createAccount=data=>{
+this.createAccount=input=>{
 	const {
 		username,
 		nickname=null,
@@ -94,8 +94,8 @@ this.createAccount=data=>{
 		mobil=false,
 		bot=false,
 		deviceName=null,
-	}=data;
-	const userId=tofsStr(username);
+	}=input;
+	const accountId=tofsStr(username);
 	const thisToken={
 		deviceName,
 		token:random(),
@@ -111,51 +111,162 @@ this.createAccount=data=>{
 		nickname,
 		password:xxhash(password),
 		token:[thisToken],
+		log:[],
+		vars:{},
 	};
-	if(this.accountIndex.includes(userId)){
-		return {
+	if(this.accountIndex.includes(accountId)){
+		return{
 			code:"acc exist",
 			errormsg:"Der Benutzername ist bereitz vergeben!",
 		};
 	}
-	this.accountIndex.push(userId);
-	this.accounts[userId]=account;
+	this.accountIndex.push(accountId);
+	this.accounts[accountId]=account;
 	this.saveRequired=true;
-	return {
+	return{
 		code:"ok",
 		data:account,
 	};
 }
-this.login=(loginData)=>{
+this.login=input=>{
+	const result=this.authUserByInput(input);
+	if(!result.allowed){
+		return result;
+	}else{
+		delete result.data;
+		return result;
+	}
+}
+this.authUserByInput=input=>{
 	let {
 		username,
 		nickname,
+		password,
 		token,
-	}=loginData;
-	let userId;
+	}=input;
+	let accountId;
 
 	if(token){
 		token=decodeBase64(token).split("|");
 		username=token[0];
 		nickname=token[1];
-		userId=tofsStr(username);
+		accountId=tofsStr(username);
 		token=Number(token[2]);
 	}else{
-		userId=tofsStr(username);
+		accountId=tofsStr(username);
 	}
 
-	if(!this.accountIndex.includes(userId)){
-		return {
+	if(!this.accountIndex.includes(accountId)){
+		return{
 			code:"acc not found",
-			errormsg:"Account konnte nicht gefunden Werden!",
+			allowed:false,
+			errormsg:"Account konnte nicht gefunden werden!",
 		};
 	}
-	const account=this.accounts[userId];
-	return {
-		code:"ok",
-		data:account,
-	};
+	const account=this.accounts[accountId];
+
+	if(token){
+		const tokenIndex=account.token.findIndex(item=>
+			item.token===token
+		);
+		if(tokenIndex===-1){
+			this.logPush({
+				accountId,
+				logMsg:(
+					`user tryed to login with token but is is to stupid: ${input.deviceName?
+						"Device Name: "+input.deviceName+", IP: "+input.ip:
+						"IP: "+input.ip
+					}${input.bot?", BOT":""}${input.mobil?", MOBIL":""}`
+				),
+			});
+			return{
+				code:"token err",
+				allowed:false,
+				errormsg:"Der angegebene Token ist abgelaufen oder nicht correct!",
+			};
+		}
+		const tokenObject=account.token[tokenIndex];
+		this.logPush({
+			accountId,
+			logMsg:(
+				`login by token: ${tokenObject.deviceName?
+					"Device Name: "+tokenObject.deviceName+", IP: "+input.ip:
+					"IP: "+input.ip
+				}${input.bot?", BOT":""}${input.mobil?", MOBIL":""}`
+			),
+		});
+		/*
+		tokenObject.lastUse=Date.now();
+		tokenObject.lastIp=input.ip;
+		tokenObject.bot=input.bot;
+		tokenObject.mobil=input.mobil;
+		tokenObject.user_agent=input.user_agent;
+		*/
+		return{
+			code:"ok",
+			allowed:true,
+			data:{
+				accountId,
+				account,
+				tokenIndex,
+			},
+		}
+	}
+	if(password){
+		if(account.password==xxhash(password)){
+			return{
+				code:"ok",
+				allowed:true,
+				data:{
+					accountId,
+					account,
+					tokenTemplate:this.tokenTemplate(input),
+				},
+			}
+		}else{
+			return{
+				code:"wrong password",
+				errormsg:"Falsches Password!",
+				allowed:false,
+			}
+		}
+	}
+	return{
+		code:"no data",
+		allowed:false,
+		errormsg:"Keine daten angegeben",
+	}
 }
+this.logPush=data=>{
+	let {account,accountId,logMsg}=data;
+	if(accountId){
+		if(!this.accountIndex.includes(accountId)){
+			throw new Error("this account don't exist! ERROR ID 'we7fgh34zftvc'");
+		}
+		account=this.accounts[accountId];
+	}
+	if(account){
+		accountId=tofsStr(account.username);
+	}
+
+	const date=new Date();
+	const time=[
+		`${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()}`,
+		`${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`,
+	];
+	this.accounts[accountId].log.push(`${time[0]} => ${time[1]}: ${logMsg}`);
+	this.saveRequired=true;
+}
+this.tokenTemplate=input=>({
+	deviceName:input.deviceName?input.deviceName:null,
+	token:random(),
+	lastUse:0,
+	created:Date.now(),
+	lastIp:input.ip,
+	user_agent:input.user_agent?input.user_agent:"",
+	mobil:input.mobil===true,
+	bot:input.bot===true,
+})
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}
@@ -165,11 +276,27 @@ this.save=(must=false)=>{
 	let accountId="";
 	for(accountId of this.accountIndex){
 		const account=this.accounts[accountId];
+		const accountDir="data/accounts/"+accountId;
+
 		const vars=account.vars;
+		const log=account.log;
 		delete account.vars;
-		CreateDir("data/accounts/"+accountId);
-		WriteFile("data/accounts/"+accountId+"/account.json",jsonStringify(account));
-		WriteFile("data/accounts/"+accountId+"/vars.json",jsonStringify(vars));
+		delete account.log;
+
+		CreateDir(accountDir);
+		WriteFile(accountDir+"/account.json",jsonStringify(account));
+		WriteFile(accountDir+"/vars.json",jsonStringify(vars?vars:{}));
+
+		const logFileData=ReadFile(accountDir+"/history.log");
+		WriteFile(accountDir+"/history.log",
+			(logFileData?logFileData:"")+
+			(log?log:[]
+					.map(item=>encodeBase64(item))
+					.join("\n")+
+					"\n"
+			)
+		);
+		this.accounts[accountId].log=[];
 	}
 	this.saveRequired=false;
 	return true;

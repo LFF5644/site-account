@@ -133,8 +133,15 @@ this.login=input=>{
 	if(!result.allowed){
 		return result;
 	}else{
+		if(result.loginBy==="token"){
+			this.updateTokenInfos({
+				tokenIndex:result.data.tokenIndex,
+				accountId: result.data.accountId,
+				input,
+			});
+		}
 		delete result.data;
-		return result;
+		return{code:"ok"};
 	}
 }
 this.authUserByInput=input=>{
@@ -195,16 +202,11 @@ this.authUserByInput=input=>{
 				}${input.bot?", BOT":""}${input.mobil?", MOBIL":""}`
 			),
 		});
-		/*
-		tokenObject.lastUse=Date.now();
-		tokenObject.lastIp=input.ip;
-		tokenObject.bot=input.bot;
-		tokenObject.mobil=input.mobil;
-		tokenObject.user_agent=input.user_agent;
-		*/
+
 		return{
 			code:"ok",
 			allowed:true,
+			loginBy:"token",
 			data:{
 				accountId,
 				account,
@@ -217,10 +219,10 @@ this.authUserByInput=input=>{
 			return{
 				code:"ok",
 				allowed:true,
+				loginBy:"password",
 				data:{
 					accountId,
 					account,
-					tokenTemplate:this.tokenTemplate(input),
 				},
 			}
 		}else{
@@ -254,7 +256,7 @@ this.logPush=data=>{
 		`${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()}`,
 		`${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`,
 	];
-	this.accounts[accountId].log.push(`${time[0]} => ${time[1]}: ${logMsg}`);
+	this.accounts[accountId].log.push(`${time[0]} => ${time[1]}: ${logMsg}\n`);
 	this.saveRequired=true;
 }
 this.tokenTemplate=input=>({
@@ -267,6 +269,37 @@ this.tokenTemplate=input=>({
 	mobil:input.mobil===true,
 	bot:input.bot===true,
 })
+this.updateTokenInfos=data=>{
+	let {
+		accountId,
+		account,
+		tokenIndex,
+		input,
+	}=data;
+	if(!accountId&&!account){
+		log("this.updateTokenInfos() data has not {account or accountId}");
+		return false;
+	}
+	if(accountId){
+		account=this.accounts[accountId];
+	}else{
+		accountId=tofsStr(account.username);
+	}
+
+	const tokenObject=account.token[tokenIndex];
+
+	tokenObject.lastUse=Date.now();
+	tokenObject.lastIp=input.ip;
+	tokenObject.bot=input.bot;
+	tokenObject.mobil=input.mobil;
+	tokenObject.user_agent=input.user_agent;
+
+	let item;
+	for(item of Object.keys(tokenObject)){
+		this.accounts[accountId].token[tokenIndex][item]=tokenObject[item];
+	}
+	this.saveRequired=true;
+}
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}

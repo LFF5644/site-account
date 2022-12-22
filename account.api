@@ -11,8 +11,19 @@ if(want=="login"){
 else if(want=="createaccount"){
 	result=service.createAccount(input);
 }
+else if(want=="setvar"){
+	result=service.setVarByInput(input);
+}
+else if(want=="getvar"){
+	result=service.getVarByInput(input);
+}
 
-?><?=typeof(result)!="object"?result:jsonStringify(result)?>
-
-
-<?=jsonStringify(input)?>
+?><?=
+	typeof(result)!="object"?
+		result:
+		jsonStringify(result)
+?><?=
+	input.debug?
+	"\n\n"+jsonStringify(input):
+	""
+?>

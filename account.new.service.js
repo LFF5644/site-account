@@ -300,6 +300,81 @@ this.updateTokenInfos=data=>{
 	}
 	this.saveRequired=true;
 }
+this.setVarByInput=input=>{
+	const result=this.authUserByInput(input);
+	if(!result.allowed){
+		return result;
+	}
+	const {varname,vardata}=input;
+	const accountId=result.data.accountId;
+
+	if(!varname||!vardata){
+		return{
+			code:"data undefined",
+			errormsg:"variablen infomationen sind nicht definirt",
+		};
+	}
+
+	if(!this.accounts[accountId].vars[varname]){
+		const now=Date.now();
+		this.accounts[accountId].vars[varname]={
+			lastUse:now,
+			lastWrite:now,
+			lastRead:now,
+			data:vardata,
+		}
+	}else{
+		const now=Date.now();
+		this.accounts[accountId].vars[varname]={
+			...this.accounts[accountId].vars[varname],
+			lastUse:now,
+			lastWrite:now,
+			data:vardata,
+		}
+	}
+	this.saveRequired=true;
+
+	return{code:"ok"};
+}
+this.getVarByInput=input=>{
+	const result=this.authUserByInput(input);
+	if(!result.allowed){
+		return result;
+	}
+	const accountId=result.data.accountId;
+
+	if(!input.varname){
+		return{
+			code:"data undefined",
+			errormsg:"variablenname ist nicht definirt!",
+		};
+	}
+
+	const vardata=this.accounts[accountId].vars[input.varname];
+	if(vardata){
+		const now=Date.now();
+		this.accounts[accountId].vars[input.varname]={
+			...vardata,
+			lastRead:now,
+			lastUse:now,
+		};
+	}
+
+	if(!vardata){return{
+		code:"var not exist",
+		errormsg:"Variable nicht gefunden",
+	}}
+	else{return{
+		code:"ok",
+		data:{
+			varname:input.varname,
+			vardata,
+		},
+	}}
+}
+this.createTokenByInput=input=>{
+	// is comming in an update;
+}
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}
@@ -329,6 +404,7 @@ this.save=(must=false)=>{
 					"\n"
 			)
 		);
+		account.vars=vars;
 		this.accounts[accountId].log=[];
 	}
 	this.saveRequired=false;

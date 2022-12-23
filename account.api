@@ -17,13 +17,20 @@ else if(want=="setvar"){
 else if(want=="getvar"){
 	result=service.getVarByInput(input);
 }
+else if(want=="createtoken"){
+	result=service.createTokenByInput(input);
+}
 
 ?><?=
 	typeof(result)!="object"?
 		result:
-		jsonStringify(result)
+		(
+			input.debug?
+				"SERVER-Response:\n"+jsonStringify(result):
+				jsonStringify(result,false)
+		)
 ?><?=
 	input.debug?
-	"\n\n"+jsonStringify(input):
+	"\n\n\n\nCLIENT-Request:\n"+jsonStringify(input):
 	""
 ?>

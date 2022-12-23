@@ -95,6 +95,10 @@ this.createAccount=input=>{
 		bot=false,
 		deviceName=null,
 	}=input;
+	if(!username||!password){return{
+		code:"no data",
+		errormsg:"es fehlen wichtige infomationen zum neuen account!",
+	}}
 	const accountId=tofsStr(username);
 	const thisToken={
 		deviceName,
@@ -139,12 +143,14 @@ this.login=input=>{
 				accountId: result.data.accountId,
 				input,
 			});
-		}
+		}/*else if(result.loginBy==="password"){
+			return this.createTokenByInput(input);
+		}*/
 		delete result.data;
 		return{code:"ok"};
 	}
 }
-this.authUserByInput=input=>{
+this.authUserByInput=input=>{// AUTH USER BY INPUT;
 	let {
 		username,
 		nickname,
@@ -159,9 +165,13 @@ this.authUserByInput=input=>{
 		nickname=token[1];
 		accountId=tofsStr(username);
 		token=Number(token[2]);
-	}else{
+	}else if(username){
 		accountId=tofsStr(username);
-	}
+	}else{return{
+		code:"no data",
+		allowed:false,
+		errormsg:"Keine daten angegeben",
+	}}
 
 	if(!this.accountIndex.includes(accountId)){
 		return{
@@ -180,7 +190,7 @@ this.authUserByInput=input=>{
 			this.logPush({
 				accountId,
 				logMsg:(
-					`user tryed to login with token but is is to stupid: ${input.deviceName?
+					`user tryed to login with wrong token: ${input.deviceName?
 						"Device Name: "+input.deviceName+", IP: "+input.ip:
 						"IP: "+input.ip
 					}${input.bot?", BOT":""}${input.mobil?", MOBIL":""}`
@@ -373,7 +383,27 @@ this.getVarByInput=input=>{
 	}}
 }
 this.createTokenByInput=input=>{
-	// is comming in an update;
+	const result=this.authUserByInput(input);
+	if(!result.allowed){return result;}
+	const {accountId,account}=result.data;
+	const loginBy=result.loginBy;
+
+	if(loginBy=="token"){
+		return{
+			code:"already token exist",
+			errormsg:"Du hast bereitz einen anmeldeschlüssel (=Token) auf disem gerät!",
+		}
+	}
+	const newToken=this.tokenTemplate(input);
+	this.accounts[accountId].token.push(newToken);
+	return{
+		code:"ok",
+		data:{
+			tokenHash:newToken.token,
+			tokenRaw:account.username+"|"+account.nickname+"|"+newToken.token,
+			token:encodeBase64(account.username+"|"+account.nickname+"|"+newToken.token),
+		},
+	}
 }
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);

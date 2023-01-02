@@ -65,7 +65,7 @@ this.start=()=>{// if service start execute this;
 				"password",	// 345676543;
 				"token",	// [{deviceName:"LFF-PC",token:346435,ip:"192.168.178.95"},{deviceName:"LFF-Handy",token:3245235,ip:"192.168.178.29"}];
 			];
-			if(requiredInput.some(item=>!thisAccount[item])){
+			if(requiredInput.some(item=>thisAccount[item]==undefined)){
 				log("data incorrect! requiredInput not exist! deleting folder "+accountFolder);
 				//execSync("rm -rf "+accountFolder);
 				continue;
@@ -77,7 +77,7 @@ this.start=()=>{// if service start execute this;
 	}
 	this.vars.saveInterval={
 		execute:arg=>clearInterval(arg),
-		arg:setInterval(this.save,1000*5,false),
+		arg:setInterval(this.save,1000*20,false),
 	}
 }
 this.reloadAccountIndex=()=>{
@@ -129,8 +129,12 @@ this.createAccount=input=>{
 	this.saveRequired=true;
 	return{
 		code:"ok",
-		data:account,
-	};
+		data:{
+			tokenHash:thisToken.token,
+			tokenRaw:account.username+"|"+account.nickname+"|"+thisToken.token,
+			token:encodeBase64(account.username+"|"+account.nickname+"|"+thisToken.token),
+		},
+	}
 }
 this.login=input=>{
 	const result=this.authUserByInput(input);
@@ -160,7 +164,7 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 	let accountId;
 
 	if(token){
-		token=decodeBase64(token).split("|");
+		token=unescape(decodeBase64(token).split("|"));
 		username=token[0];
 		nickname=token[1];
 		accountId=tofsStr(username);
@@ -408,7 +412,7 @@ this.createTokenByInput=input=>{
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}
-	log("SAVE!");
+	//log("SAVE!");
 	this.reloadAccountIndex();
 	WriteFile("data/accounts/accountIndex.json",jsonStringify(this.accountIndex));
 	let accountId="";

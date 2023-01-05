@@ -20,6 +20,9 @@ else if(want=="getvar"){
 else if(want=="createtoken"){
 	result=service.createTokenByInput(input);
 }
+else if(want=="logoutdevice"){
+	result=service.logoutDevice(input);
+}
 
 ?><?=
 	typeof(result)!="object"?

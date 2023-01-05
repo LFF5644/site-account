@@ -65,7 +65,7 @@ this.start=()=>{// if service start execute this;
 				"password",	// 345676543;
 				"token",	// [{deviceName:"LFF-PC",token:346435,ip:"192.168.178.95"},{deviceName:"LFF-Handy",token:3245235,ip:"192.168.178.29"}];
 			];
-			if(requiredInput.some(item=>thisAccount[item]==undefined)){
+			if(requiredInput.some(item=>thisAccount[item]===undefined)){
 				log("data incorrect! requiredInput not exist! deleting folder "+accountFolder);
 				//execSync("rm -rf "+accountFolder);
 				continue;
@@ -164,11 +164,19 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 	let accountId;
 
 	if(token){
-		token=unescape(decodeBase64(token).split("|"));
-		username=token[0];
-		nickname=token[1];
-		accountId=tofsStr(username);
-		token=Number(token[2]);
+		try{
+			token=decodeBase64(unescape(token)).split("|");
+			username=token[0];
+			nickname=token[1];
+			accountId=tofsStr(username);
+			if(token.length!==3){throw "err";}
+			token=Number(token[2]);
+		}catch(e){return{
+			code:"token format err",
+			allowed:false,
+			errormsg:"Das Token Format ist veraltet oder nicht erlaubt!",
+		}}
+		
 	}else if(username){
 		accountId=tofsStr(username);
 	}else{return{
@@ -267,10 +275,10 @@ this.logPush=data=>{
 
 	const date=new Date();
 	const time=[
-		`${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()}`,
-		`${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`,
+		`${String(date.getDate()).padStart(2,"0")}.${String(date.getMonth()+1).padStart(2,"0")}.${date.getFullYear()}`,
+		`${String(date.getHours()).padStart(2,"0")}:${String(date.getMinutes()).padStart(2,"0")}:${String(date.getSeconds()).padStart(2,"0")}`,
 	];
-	this.accounts[accountId].log.push(`${time[0]} => ${time[1]}: ${logMsg}\n`);
+	this.accounts[accountId].log.push(`${time[0]} => ${time[1]}: ${logMsg}`);
 	this.saveRequired=true;
 }
 this.tokenTemplate=input=>({
@@ -409,6 +417,23 @@ this.createTokenByInput=input=>{
 		},
 	}
 }
+this.logoutDevice=input=>{
+	const result=this.authUserByInput(input);
+	if(!result.allowed){return result;}
+	const {accountId,account}=result.data;
+	const {tokenCreated}=input;
+
+	const tokenIndex=account.token.findIndex(token=>
+		token.created==tokenCreated
+	);
+	if(tokenIndex===undefined){return{
+		code:"token not found",
+		errormsg:"Das Gerät konnte nicht gefunden werden!",
+	}}
+	this.accounts[accountId].token.splice(tokenIndex,1);
+	this.saveRequired=true;
+	return{code:"ok"}
+}
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}
@@ -432,10 +457,9 @@ this.save=(must=false)=>{
 		const logFileData=ReadFile(accountDir+"/history.log");
 		WriteFile(accountDir+"/history.log",
 			(logFileData?logFileData:"")+
-			(log?log:[]
-					.map(item=>encodeBase64(item))
-					.join("\n")+
-					"\n"
+			((log?log:[])
+				.map(item=>encodeBase64(item))
+				.join("\n")+"\n"
 			)
 		);
 		account.vars=vars;

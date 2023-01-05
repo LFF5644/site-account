@@ -140,19 +140,8 @@ this.login=input=>{
 	const result=this.authUserByInput(input);
 	if(!result.allowed){
 		return result;
-	}else{
-		if(result.loginBy==="token"){
-			this.updateTokenInfos({
-				tokenIndex:result.data.tokenIndex,
-				accountId: result.data.accountId,
-				input,
-			});
-		}/*else if(result.loginBy==="password"){
-			return this.createTokenByInput(input);
-		}*/
-		delete result.data;
-		return{code:"ok"};
 	}
+	return{code:"ok"};
 }
 this.authUserByInput=input=>{// AUTH USER BY INPUT;
 	let {
@@ -179,11 +168,13 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 		
 	}else if(username){
 		accountId=tofsStr(username);
-	}else{return{
-		code:"no data",
-		allowed:false,
-		errormsg:"Keine daten angegeben",
-	}}
+	}else{
+		return{
+			code:"no data",
+			allowed:false,
+			errormsg:"Keine daten angegeben",
+		}
+	}
 
 	if(!this.accountIndex.includes(accountId)){
 		return{
@@ -224,7 +215,11 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 				}${input.bot?", BOT":""}${input.mobil?", MOBIL":""}`
 			),
 		});
-
+		this.updateTokenInfos({
+			accountId,
+			tokenIndex,
+			input,
+		});
 		return{
 			code:"ok",
 			allowed:true,

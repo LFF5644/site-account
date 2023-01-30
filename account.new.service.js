@@ -363,7 +363,7 @@ this.getVarByInput=input=>{
 	if(!input.varname){
 		return{
 			code:"data undefined",
-			errormsg:"variablenname ist nicht definirt!",
+			errormsg:"Variablenname ist nicht definirt!",
 		};
 	}
 
@@ -454,7 +454,7 @@ this.save=(must=false)=>{
 			(logFileData?logFileData:"")+
 			((log?log:[])
 				.map(item=>encodeBase64(item))
-				.join("\n")+"\n"
+				.join("\n")
 			)
 		);
 		account.vars=vars;

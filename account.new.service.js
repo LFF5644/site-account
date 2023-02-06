@@ -24,7 +24,7 @@ this.start=()=>{// if service start execute this;
 	this.vars={};
 	
 	readRanksFromFile:{
-		const fileRanks="data/accounts/ranks.json";
+		const fileRanks="config/account_ranks.json";
 		let fileData=ReadJsonFile(fileRanks);
 		if(!fileData){
 			fileData={default:[]};

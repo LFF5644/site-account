@@ -1,0 +1,26 @@
+name: deploy to webserver
+
+on:
+  push:
+    branches-ignore:
+      - dev
+      - build
+    paths:
+      - '*'
+  pull_request:
+    branches-ignore:
+      - dev
+      - build
+    paths:
+      - '*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: build, deploy
+    steps:
+      - name: execute pull on server
+        if: github.ref == 'refs/heads/master'
+        run:
+          curl https://lff.l3p3.de/server/git/gitPull.api

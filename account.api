@@ -23,6 +23,12 @@ else if(want=="createtoken"){
 else if(want=="logoutdevice"){
 	result=service.logoutDevice(input);
 }
+else if(want=="getmyranks"){
+	result=service.getRanksByInput(input);
+}
+else if(want=="getranks"){
+	result=service.getRanks();
+}
 
 ?><?=
 	typeof(result)!="object"?

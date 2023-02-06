@@ -2,6 +2,7 @@
 // IMPORT //
 const {
 	ReadFile,
+	ReadJsonFile,
 	WriteFile,
 	CreateDir,
 	tofsStr,
@@ -19,8 +20,19 @@ this.start=()=>{// if service start execute this;
 	this.accountIndex=[];
 	this.accounts={};
 	this.saveRequired=false;
+	this.ranks={};
 	this.vars={};
 	
+	readRanksFromFile:{
+		const fileRanks="data/accounts/ranks.json";
+		let fileData=ReadJsonFile(fileRanks);
+		if(!fileData){
+			fileData={default:[]};
+			log("ranks file cant found or load correctly!");
+		}
+		this.ranks=fileData;
+	}
+
 	readAccountIndex:{
 		const accountIndexFile="data/accounts/accountIndex.json";
 		let accountIndex=ReadFile(accountIndexFile);
@@ -117,6 +129,8 @@ this.createAccount=input=>{
 		token:[thisToken],
 		log:[],
 		vars:{},
+		rankNames:["default"],
+		rankAttrs:[],
 	};
 	if(this.accountIndex.includes(accountId)){
 		return{
@@ -279,14 +293,14 @@ this.logPush=data=>{
 	return true;
 }
 this.tokenTemplate=input=>({
-	deviceName:input.deviceName?input.deviceName:null,
-	token:random(),
-	lastUse:0,
-	created:Date.now(),
-	lastIp:input.ip,
-	user_agent:input.user_agent?input.user_agent:"",
-	mobil:input.mobil===true,
-	bot:input.bot===true,
+	deviceName: input.deviceName?input.deviceName:null,
+	token: random(),
+	lastUse: 0,
+	created: Date.now(),
+	lastIp: input.ip,
+	user_agent: input.user_agent?input.user_agent:"",
+	mobil: input.mobil===true,
+	bot: input.bot===true,
 })
 this.updateTokenInfos=data=>{
 	let {
@@ -296,7 +310,7 @@ this.updateTokenInfos=data=>{
 		input,
 	}=data;
 	if(!accountId&&!account){
-		log("this.updateTokenInfos() data has not {account or accountId}");
+		log("this.updateTokenInfos() {data} has not {account} or {accountId}");
 		return false;
 	}
 	if(accountId){
@@ -318,6 +332,7 @@ this.updateTokenInfos=data=>{
 		this.accounts[accountId].token[tokenIndex][item]=tokenObject[item];
 	}
 	this.saveRequired=true;
+	return true;
 }
 this.setVarByInput=input=>{
 	const result=this.authUserByInput(input);
@@ -353,7 +368,7 @@ this.setVarByInput=input=>{
 	}
 	this.saveRequired=true;
 
-	return{code:"ok"};
+	return {code:"ok"};
 }
 this.getVarByInput=input=>{
 	const result=this.authUserByInput(input);
@@ -400,7 +415,7 @@ this.createTokenByInput=input=>{
 	if(loginBy=="token"){
 		return{
 			code:"already token exist",
-			errormsg:"Du hast bereits einen anmeldeschlüssel (=Token) auf diesem gerät!",
+			errormsg:"Du hast bereits einen Anmeldeschlüssel (Token) auf diesem gerät!",
 		}
 	}
 	const newToken=this.tokenTemplate(input);
@@ -431,6 +446,39 @@ this.logoutDevice=input=>{
 	this.saveRequired=true;
 	return{code:"ok"}
 }
+this.getRanks=()=>{
+	return {
+		code:"ok",
+		data:{
+			ranks:this.ranks,
+		},
+	};
+}
+this.getRanksByInput=input=>{
+	const result=this.authUserByInput(input);
+	if(!result.allowed){return result}
+
+	const accountId=result.data.accountId;
+	
+	if(
+		!this.accounts[accountId].rankNames||
+		!this.accounts[accountId].rankAttrs
+	){
+		this.accounts[accountId].rankNames=["default"];
+		this.accounts[accountId].rankAttrs=[];
+		
+	}
+
+	return{
+		code:"ok",
+		data:{
+			rankNames:this.accounts[accountId].rankNames,
+			rankAttrs:this.accounts[accountId].rankAttrs,
+			ranks:this.ranks,
+		},
+	}
+
+}
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}
@@ -444,9 +492,10 @@ this.save=(must=false)=>{
 
 		const vars=account.vars;
 		const log=account.log;
-		delete account.vars;
-		delete account.log;
 
+		account.vars=undefined;
+		account.log=undefined;
+		
 		CreateDir(accountDir);
 		WriteFile(accountDir+"/account.json",jsonStringify(account));
 		WriteFile(accountDir+"/vars.json",jsonStringify(vars?vars:{}));
@@ -459,7 +508,6 @@ this.save=(must=false)=>{
 				.join("\n")
 			)
 		);
-		account.vars=vars;
 		this.accounts[accountId].log=[];
 	}
 	this.saveRequired=false;
@@ -472,5 +520,5 @@ this.stop=()=>{
 		const v=this.vars[varName];
 		v.execute(v.arg);
 	}
-	this.vars={};
+
 }

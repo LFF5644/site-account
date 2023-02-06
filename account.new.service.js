@@ -97,7 +97,7 @@ this.createAccount=input=>{
 	}=input;
 	if(!username||!password){return{
 		code:"no data",
-		errormsg:"es fehlen wichtige infomationen zum neuen account!",
+		errormsg:"es fehlen wichtige Information zum neuen account!",
 	}}
 	const accountId=tofsStr(username);
 	const thisToken={
@@ -121,7 +121,7 @@ this.createAccount=input=>{
 	if(this.accountIndex.includes(accountId)){
 		return{
 			code:"acc exist",
-			errormsg:"Der Benutzername ist bereitz vergeben!",
+			errormsg:"Der Benutzername ist bereits vergeben!",
 		};
 	}
 	this.accountIndex.push(accountId);
@@ -172,7 +172,7 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 		return{
 			code:"no data",
 			allowed:false,
-			errormsg:"Keine daten angegeben",
+			errormsg:"Keine Daten angegeben",
 		}
 	}
 
@@ -193,7 +193,7 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 			this.logPush({
 				accountId,
 				logMsg:(
-					`user tryed to login with wrong token: ${input.deviceName?
+					`user tried to login with wrong token: ${input.deviceName?
 						"Device Name: "+input.deviceName+", IP: "+input.ip:
 						"IP: "+input.ip
 					}${input.bot?", BOT":""}${input.mobil?", MOBIL":""}`
@@ -253,14 +253,15 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 	return{
 		code:"no data",
 		allowed:false,
-		errormsg:"Keine daten angegeben",
+		errormsg:"Keine Daten angegeben",
 	}
 }
 this.logPush=data=>{
 	let {account,accountId,logMsg}=data;
 	if(accountId){
 		if(!this.accountIndex.includes(accountId)){
-			throw new Error("this account don't exist! ERROR ID 'we7fgh34zftvc'");
+			log("account cant found WRONG ID "+accountId);
+			return false;
 		}
 		account=this.accounts[accountId];
 	}
@@ -275,6 +276,7 @@ this.logPush=data=>{
 	];
 	this.accounts[accountId].log.push(`${time[0]} => ${time[1]}: ${logMsg}`);
 	this.saveRequired=true;
+	return true;
 }
 this.tokenTemplate=input=>({
 	deviceName:input.deviceName?input.deviceName:null,
@@ -328,7 +330,7 @@ this.setVarByInput=input=>{
 	if(!varname||!vardata){
 		return{
 			code:"data undefined",
-			errormsg:"variablen infomationen sind nicht definirt",
+			errormsg:"Variablen Informationen sind nicht definiert",
 		};
 	}
 
@@ -363,7 +365,7 @@ this.getVarByInput=input=>{
 	if(!input.varname){
 		return{
 			code:"data undefined",
-			errormsg:"Variablenname ist nicht definirt!",
+			errormsg:"Variablenname ist nicht definiert!",
 		};
 	}
 
@@ -398,7 +400,7 @@ this.createTokenByInput=input=>{
 	if(loginBy=="token"){
 		return{
 			code:"already token exist",
-			errormsg:"Du hast bereitz einen anmeldeschlüssel (=Token) auf disem gerät!",
+			errormsg:"Du hast bereits einen anmeldeschlüssel (=Token) auf diesem gerät!",
 		}
 	}
 	const newToken=this.tokenTemplate(input);

@@ -23,6 +23,69 @@ this.start=()=>{// if service start execute this;
 	this.ranks={};
 	this.vars={};
 	
+	addToActions:{
+		actions.accountNewService_start={
+			display:"Starten",
+			service:"account.new.service.js",
+			servicename:"Account New Service",
+			action:this.start,
+			enabled:false,
+		}
+		actions.accountNewService_stop={
+			display:"Stoppen",
+			service:"account.new.service.js",
+			servicename:"Account New Service",
+			action:this.stop,
+			enabled:true,
+		}
+		actions.accountNewService_reloadAccountIndex={
+			display:"Account-Index neu laden",
+			service:"account.new.service.js",
+			servicename:"Account New Service",
+			action:this.reloadAccountIndex,
+			enabled:true,
+		}
+		actions.accountNewService_save={
+			display:"Accounts speichern",
+			service:"account.new.service.js",
+			servicename:"Account New Service",
+			action:()=>this.save(true),
+			enabled:true,
+		}
+		actions.accountNewService_restart={
+			display:"Neu starten",
+			service:"account.new.service.js",
+			servicename:"Account New Service",
+			action:()=>{this.stop();this.start()},
+			enabled:true,
+		}
+		actions.accountNewService_autoSaveOff={
+			display:"Autospeichern AUS",
+			service:"account.new.service.js",
+			servicename:"Account New Service",
+			action:()=>{
+				const v=this.vars.saveInterval;
+				v.execute(v.arg);
+				actions.accountNewService_autoSaveOff.enabled=false;
+				actions.accountNewService_autoSaveOn.enabled=true;
+			},
+			enabled:true,
+		}
+		actions.accountNewService_autoSaveOn={
+			display:"Autospeichern AN",
+			service:"account.new.service.js",
+			servicename:"Account New Service",
+			action:()=>{
+				this.vars.saveInterval={
+					execute:arg=>clearInterval(arg),
+					arg:setInterval(this.save,1000*20,false),
+				}
+				actions.accountNewService_autoSaveOff.enabled=true;
+				actions.accountNewService_autoSaveOn.enabled=false;
+			},
+			enabled:false,
+		}
+	}
 	readRanksFromFile:{
 		const fileRanks="config/account_ranks.json";
 		let fileData=ReadJsonFile(fileRanks);
@@ -32,7 +95,6 @@ this.start=()=>{// if service start execute this;
 		}
 		this.ranks=fileData;
 	}
-
 	readAccountIndex:{
 		const accountIndexFile="data/accounts/accountIndex.json";
 		let accountIndex=ReadFile(accountIndexFile);
@@ -539,5 +601,11 @@ this.stop=()=>{
 		const v=this.vars[varName];
 		v.execute(v.arg);
 	}
-
+	actions.accountNewService_start.enabled=true;	// allow to start up the service
+	actions.accountNewService_stop.enabled=false;
+	actions.accountNewService_reloadAccountIndex.enabled=false;
+	actions.accountNewService_save.enabled=false;
+	actions.accountNewService_restart.enabled=false;
+	actions.accountNewService_autoSaveOff.enabled=false;
+	actions.accountNewService_autoSaveOn.enabled=false;
 }

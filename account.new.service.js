@@ -479,6 +479,25 @@ this.getRanksByInput=input=>{
 	}
 
 }
+this.hasAccountRankAttr=data=>{
+	const {
+		username,
+		rankAttr,
+	}=data;
+	if(!rankAttr||!username){return false}
+
+	const accountId=tofsStr(username);
+	const account=this.accounts[accountId];
+	
+	if(account.rankAttrs.includes(rankAttr)){return true}
+	
+	let item;
+	for(item of account.rankNames){
+		const ranks=this.ranks[item];
+		if(ranks.includes(rankAttr)){return true}
+	}
+	return false;
+}
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}

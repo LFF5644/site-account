@@ -401,8 +401,9 @@ this.setVarByInput=input=>{
 	if(!result.allowed){
 		return result;
 	}
-	const {varname,vardata}=input;
+	const {varname,vardata,coding}=input;
 	const accountId=result.data.accountId;
+	const account=result.data.account;
 
 	if(!varname||!vardata){
 		return{
@@ -411,21 +412,21 @@ this.setVarByInput=input=>{
 		};
 	}
 
-	if(!this.accounts[accountId].vars[varname]){
+	if(!account.vars[varname]){
 		const now=Date.now();
 		this.accounts[accountId].vars[varname]={
 			lastUse:now,
 			lastWrite:now,
 			lastRead:now,
-			data:vardata,
+			data:Buffer.from(vardata,coding).toString("hex"),
 		}
 	}else{
 		const now=Date.now();
 		this.accounts[accountId].vars[varname]={
-			...this.accounts[accountId].vars[varname],
+			...account.vars[varname],
 			lastUse:now,
 			lastWrite:now,
-			data:vardata,
+			data:Buffer.from(vardata,coding).toString("hex"),
 		}
 	}
 	this.saveRequired=true;
@@ -433,23 +434,28 @@ this.setVarByInput=input=>{
 	return {code:"ok"};
 }
 this.getVarByInput=input=>{
+	const {varname,coding}=input;
 	const result=this.authUserByInput(input);
+
 	if(!result.allowed){
 		return result;
 	}
-	const accountId=result.data.accountId;
 
-	if(!input.varname){
+	const accountId=result.data.accountId;
+	const account=result.data.account;
+
+	if(!varname){
 		return{
 			code:"data undefined",
 			errormsg:"Variablenname ist nicht definiert!",
 		};
 	}
 
-	const vardata=this.accounts[accountId].vars[input.varname];
+	const vardata=account.vars[varname];
+
 	if(vardata){
 		const now=Date.now();
-		this.accounts[accountId].vars[input.varname]={
+		this.accounts[accountId].vars[varname]={
 			...vardata,
 			lastRead:now,
 			lastUse:now,
@@ -463,8 +469,12 @@ this.getVarByInput=input=>{
 	else{return{
 		code:"ok",
 		data:{
-			varname:input.varname,
-			vardata,
+			varname,
+			vardata:{
+				...vardata,
+				data: Buffer.from(vardata.data,"hex").toString(coding),
+				coding,
+			},
 		},
 	}}
 }
@@ -563,7 +573,7 @@ this.hasAccountRankAttr=data=>{
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}
-	//log("SAVE!");
+	log("SAVE!");
 	this.reloadAccountIndex();
 	WriteFile("data/accounts/accountIndex.json",jsonStringify(this.accountIndex));
 	let accountId="";
@@ -574,8 +584,8 @@ this.save=(must=false)=>{
 		const vars=account.vars;
 		const log=account.log;
 
-		account.vars=undefined;
-		account.log=undefined;
+		delete account.vars;
+		delete account.log;
 		
 		CreateDir(accountDir);
 		WriteFile(accountDir+"/account.json",jsonStringify(account));
@@ -586,9 +596,11 @@ this.save=(must=false)=>{
 			(logFileData?logFileData:"")+
 			((log?log:[])
 				.map(item=>encodeBase64(item))
-				.join("\n")
+				.join("\n")+
+				"\n"
 			)
 		);
+		account.vars=vars;
 		this.accounts[accountId].log=[];
 	}
 	this.saveRequired=false;

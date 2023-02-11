@@ -23,4 +23,4 @@ jobs:
       - name: execute pull on server
         if: github.ref == 'refs/heads/master'
         run:
-          curl https://lff.l3p3.de/server/git/gitPull.api
+          curl https://lff.one/server/git/gitPull.api

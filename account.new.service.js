@@ -573,7 +573,7 @@ this.hasAccountRankAttr=data=>{
 this.save=(must=false)=>{
 	must=must===true;	// don't allow => this.save(Object);
 	if(!must&&!this.saveRequired){return false;}
-	log("SAVE!");
+	//log("SAVE!");
 	this.reloadAccountIndex();
 	WriteFile("data/accounts/accountIndex.json",jsonStringify(this.accountIndex));
 	let accountId="";

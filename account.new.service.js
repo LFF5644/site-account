@@ -291,7 +291,7 @@ this.authUserByInput=input=>{// AUTH USER BY INPUT;
 				}${input.bot?", BOT":""}${input.mobil?", MOBIL":""}`
 			),
 		});
-		this.updateTokenInfos({
+		if(!Object.keys(input).length==1) this.updateTokenInfos({
 			accountId,
 			tokenIndex,
 			input,
